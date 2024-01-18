@@ -34,7 +34,7 @@ export default function Board() {
   function reset(){
     const reset = Array(9).fill(null);
     setSquares(reset);
-    setXIsNext(!xIsNext);
+    setXIsNext(true);
   }
 
   return (
