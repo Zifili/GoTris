@@ -8,3 +8,6 @@ A tris game made in Golang + React
 - [ ] the client should be able to convert the XMLs/JSONs into a graphical output
 - [ ] the client should be able to send the XMLs/JSONs containing information about the current turn
 - [ ] the server should be able to share the XMLs/JSONs containing information about the current turn, to another client(multiplayer 1v1 situation)
+
+
+resx: https://tutorialedge.net/projects/chat-system-in-go-and-react/part-3-designing-our-frontend/
