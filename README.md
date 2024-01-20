@@ -1,5 +1,5 @@
 # GoTris
-A tris game made in Golang
+A tris game made in Golang + React
 
 # Objectives
 

@@ -1,37 +1,50 @@
 package main
 
 import (
-	"fmt"
-	"net"
+    "fmt"
+    "net/http"
+    "github.com/gorilla/websocket"
+    "log"
 )
 
-func handleConnection(conn net.Conn) {
-    defer conn.Close()
-
-    buf := make([]byte, 1024)
-    _, err := conn.Read(buf)
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-
-    fmt.Printf("Received: %s", buf)
+var upgrader = websocket.Upgrader{
+    ReadBufferSize:  1024,
+    WriteBufferSize: 1024,
+    CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-func main(){
-	fmt.Println("GoTris")
-	listen, err := net.Listen("tcp", ":8080")
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-	for {
-        conn, err := listen.Accept()
+func reader(conn *websocket.Conn) {
+    for {
+        messageType, p, err := conn.ReadMessage()
         if err != nil {
-            fmt.Println(err)
-            continue
+            log.Println(err)
+            return
+        }
+        fmt.Println(string(p))
+
+        if err := conn.WriteMessage(messageType, p); err != nil {
+            log.Println(err)
+            return
         }
 
-        go handleConnection(conn)
     }
+}
+func serveWs(w http.ResponseWriter, r *http.Request) {
+    fmt.Println(r.Host)
+    ws, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        log.Println(err)
+  }
+    reader(ws)
+}
+func setupRoutes() {
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Fprintf(w, "Simple Server")
+    })
+    http.HandleFunc("/ws", serveWs)
+}
+
+func main() {
+    setupRoutes()
+    http.ListenAndServe(":8080", nil)
 }
