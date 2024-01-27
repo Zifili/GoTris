@@ -8,12 +8,8 @@ function Square({value, onSquareClick}){
 function Reset({resetOnClick}){
   return <button className='reset'onClick={resetOnClick}>Quit</button>;
 }
-function send() {
-  console.log("hello");
-  sendMsg("hello");
-}
+
 export default function Board() {
-  connect();
   const [xIsNext,setXIsNext] = useState(true);
   const [squares, setSquares] = useState(Array(9).fill(null));
   const winner = calculateWinner(squares);
@@ -27,7 +23,6 @@ export default function Board() {
     if (squares[i] || winner){
       return;
     }
-    send();
     const currentSquares = squares.slice();
     if(xIsNext){
       currentSquares[i] = "X";
