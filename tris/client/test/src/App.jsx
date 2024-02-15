@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import WebSocket from "react-websocket";
 
 function Square({ value, onSquareClick }) {
   return (
@@ -18,7 +19,7 @@ function Reset({ resetOnClick }) {
 }
 
 export default function Board() {
-  const [Turn, setTurn] = useState(true);
+  const [xIsNext, setxIsNext] = useState(true);
   const [squares, setSquares] = useState(Array(9).fill(null));
   const api = "http://localhost:8080";
   //const winner = calculateWinner(squares);
@@ -27,27 +28,30 @@ export default function Board() {
     fetch(api+'/game-state')
       .then(response => response.json())
       .then(data => {
-        setTurn(data.Turn);
+        setxIsNext(data.xIsNext);
         setSquares(data.squares);
         setWinner(data.winner);
       });
   }, []);
-
+  function handleData(data) {
+    const gameState = JSON.parse(data);
+    setxIsNext(gameState.xIsNext);
+    setSquares(gameState.squares);
+    setWinner(gameState.winner);
+  }
   let status;
   if (winner) {
     status = "Winner: " + winner;
   } else {
-    status = "Next player: " + (Turn ? "X" : "O");
+    status = "Next player: " + (xIsNext ? "X" : "O");
   }
   function handleClick(i) {
     if (squares[i] || winner) {
       return;
     }
-    if(!Turn){
-      return;
-    }
+    
     const currentSquares = squares.slice();
-    if (Turn) {
+    if (xIsNext) {
       currentSquares[i] = "X";
     } else {
       currentSquares[i] = "O";
@@ -61,7 +65,7 @@ export default function Board() {
     })
       .then(response => response.json())
       .then(data => {
-        setTurn(data.Turn);
+        setxIsNext(!xIsNext);
         setSquares(data.squares);
         setWinner(data.winner);
       });
@@ -73,7 +77,7 @@ export default function Board() {
     })
       .then(response => response.json())
       .then(data => {
-        setTurn(data.Turn);
+        setxIsNext(data.xIsNext);
         setSquares(data.squares);
         setWinner(data.winner);
       });
@@ -81,6 +85,11 @@ export default function Board() {
 
   return (
     <>
+      <WebSocket
+        url="ws://127.0.0.1:8080/ws"
+        onMessage={handleData}
+        reconnect={true}
+      />
       <div className="status">{status}</div>
       <div className="board-row">
         <Square value={squares[0]} onSquareClick={() => handleClick(0)} />

@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
 	//"github.com/gorilla/websocket"
+	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
 )
 
@@ -14,6 +16,14 @@ type GameState struct {
 }
 
 var gameState GameState
+var clients = make(map[*websocket.Conn]bool)
+var broadcast = make(chan GameState)
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 func main() {
 	// Inizializza lo stato del gioco
 	gameState = GameState{
@@ -26,10 +36,12 @@ func main() {
 	mux.HandleFunc("/game-state", getGameStateHandler)
 	mux.HandleFunc("/make-move", makeMoveHandler)
 	mux.HandleFunc("/reset-game", resetGameHandler)
-  
-	handler := cors.Default().Handler(mux)
+	mux.HandleFunc("/ws", handleWebSocket)
 
+	handler := cors.Default().Handler(mux)
+	go handleBroadcast()
 	http.ListenAndServe(":8080", handler)
+
 }
 func getGameStateHandler(w http.ResponseWriter, r *http.Request) {
 	// Restituisci lo stato corrente del gioco come JSON
@@ -62,7 +74,37 @@ func resetGameHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(gameState)
 }
+func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
 
+	clients[conn] = true
+
+	for {
+		// Read message from the client
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			delete(clients, conn)
+			break
+		}
+	}
+}
+func handleBroadcast() {
+	for {
+		state := <-broadcast
+		for client := range clients {
+			err := client.WriteJSON(state)
+			if err != nil {
+				client.Close()
+				delete(clients, client)
+			}
+		}
+	}
+}
 func calculateWinner(squares []string) string {
 	lines := [][]int{
 		{0, 1, 2},
